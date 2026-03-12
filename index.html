@@ -1,0 +1,765 @@
+[<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+
+<meta charset="UTF-8">
+<title>SigaOps</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Segoe UI;
+}
+
+body{
+background:#eef2f7;
+}
+
+/* LOGIN */
+
+.login{
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(135deg,#0f4c81,#ff7a00);
+}
+
+.login-box{
+background:white;
+padding:40px;
+border-radius:12px;
+width:320px;
+box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+.login input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+.btn{
+margin-top:15px;
+padding:12px;
+width:100%;
+border:none;
+border-radius:10px;
+background:#ff7a00;
+color:white;
+cursor:pointer;
+}
+
+/* APP */
+
+.app{
+display:none;
+height:100vh;
+}
+
+.container{
+display:flex;
+height:100%;
+}
+
+.sidebar{
+width:230px;
+background:#0f4c81;
+color:white;
+padding:25px;
+}
+
+.sidebar h2{
+margin-bottom:20px;
+}
+
+.sidebar button{
+width:100%;
+padding:12px;
+margin-bottom:10px;
+border:none;
+border-radius:10px;
+background:#1c6ab0;
+color:white;
+cursor:pointer;
+}
+
+.sidebar button:hover{
+background:#ff7a00;
+}
+
+.main{
+flex:1;
+padding:25px;
+overflow:auto;
+}
+
+/* DASHBOARD */
+
+.cards{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 8px 20px rgba(0,0,0,0.1);
+}
+
+canvas{
+max-height:300px;
+}
+
+/* FORM */
+
+.form{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-bottom:20px;
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:10px;
+}
+
+.form textarea{
+grid-column:span 4;
+}
+
+input,textarea{
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc;
+}
+
+/* KANBAN */
+
+.kanban{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:15px;
+}
+
+.col{
+background:white;
+padding:15px;
+border-radius:12px;
+min-height:300px;
+}
+
+.task{
+padding:10px;
+margin-top:10px;
+border-radius:8px;
+color:white;
+cursor:grab;
+font-weight:bold;
+}
+
+.cliente{background:#ff7a00;}
+.agendado{background:#2f7afc;}
+.concluido{background:#888;}
+
+#map{
+height:500px;
+border-radius:12px;
+}
+
+/* CALENDARIO */
+
+.calendar{
+background:white;
+padding:20px;
+border-radius:16px;
+box-shadow:0 10px 25px rgba(0,0,0,0.1);
+margin-bottom:20px;
+}
+
+.calendar-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.calendar-header button{
+background:#ff7a00;
+border:none;
+color:white;
+padding:8px 12px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.diasSemana{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+text-align:center;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.calendar-grid{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:8px;
+}
+
+.dia{
+background:#f3f6fb;
+padding:15px;
+border-radius:10px;
+cursor:pointer;
+text-align:center;
+}
+
+.temEvento{
+background:#2f7afc;
+color:white;
+}
+
+.atrasadoDia{
+background:#ff7a00;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="login" id="login">
+<div class="login-box">
+
+<h2>SigaOps</h2>
+
+<input id="user" placeholder="Usuário">
+<input id="pass" type="password" placeholder="Senha">
+
+<button class="btn" onclick="loginSistema()">Entrar</button>
+
+</div>
+</div>
+
+<div class="app" id="app">
+
+<div class="container">
+
+<div class="sidebar">
+
+<h2>SigaOps</h2>
+
+<button onclick="mostrar('dashboard')">Dashboard</button>
+<button onclick="mostrar('kanban')">Kanban</button>
+<button onclick="mostrarMapa()">Mapa</button>
+<button onclick="mostrar('calendario')">Calendário</button>
+
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+
+<div id="dashboard">
+
+<div class="cards">
+
+<div class="card">Total<h2 id="total"></h2></div>
+<div class="card">Chamar<h2 id="c1"></h2></div>
+<div class="card">Agendado<h2 id="c2"></h2></div>
+<div class="card">Concluído<h2 id="c3"></h2></div>
+<div class="card">Atrasados<h2 id="atrasados"></h2></div>
+
+</div>
+
+<div class="card">
+<canvas id="graficoStatus"></canvas>
+</div>
+
+<div class="card">
+<canvas id="graficoCidades"></canvas>
+</div>
+
+</div>
+
+<!-- KANBAN -->
+
+<div id="kanban" style="display:none">
+
+<input id="busca" placeholder="Buscar cliente ou OC" onkeyup="buscar()" style="margin-bottom:15px;padding:10px;border-radius:8px;border:1px solid #ccc">
+
+<div class="form">
+
+<input id="oc" placeholder="OC">
+<input id="cliente" placeholder="Cliente">
+<input id="cidade" placeholder="Cidade">
+<input id="data" type="date">
+
+<textarea id="nota" placeholder="Observação"></textarea>
+
+<button class="btn" onclick="add()">Adicionar</button>
+
+</div>
+
+<div class="kanban">
+
+<div class="col" data-status="cliente" ondrop="drop(event)" ondragover="allow(event)">
+<h3>Chamar Cliente</h3>
+</div>
+
+<div class="col" data-status="agendado" ondrop="drop(event)" ondragover="allow(event)">
+<h3>Agendado</h3>
+</div>
+
+<div class="col" data-status="concluido" ondrop="drop(event)" ondragover="allow(event)">
+<h3>Concluído</h3>
+</div>
+
+</div>
+
+</div>
+
+<!-- MAPA -->
+
+<div id="mapa" style="display:none">
+
+<h2>Mapa de Clientes</h2>
+<div id="map"></div>
+
+</div>
+
+<!-- CALENDARIO -->
+
+<div id="calendario" style="display:none">
+
+<h2>Calendário</h2>
+
+<div class="calendar">
+
+<div class="calendar-header">
+
+<button onclick="mesAnterior()">◀</button>
+
+<h3 id="mesAno"></h3>
+
+<button onclick="mesProximo()">▶</button>
+
+</div>
+
+<div class="diasSemana">
+
+<div>Dom</div>
+<div>Seg</div>
+<div>Ter</div>
+<div>Qua</div>
+<div>Qui</div>
+<div>Sex</div>
+<div>Sáb</div>
+
+</div>
+
+<div id="calendarGrid" class="calendar-grid"></div>
+
+</div>
+
+<div id="agendaDia"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+let dados = JSON.parse(localStorage.getItem("siga_ops")) || []
+
+let map
+let markers=[]
+let cidadesCache={}
+
+/* LOGIN */
+
+function loginSistema(){
+
+if(user.value==="admin" && pass.value==="123"){
+
+login.style.display="none"
+app.style.display="block"
+
+initMap()
+render()
+gerarCalendario()
+
+}else{
+
+alert("Login inválido")
+
+}
+
+}
+
+function mostrar(sec){
+
+dashboard.style.display="none"
+kanban.style.display="none"
+mapa.style.display="none"
+calendario.style.display="none"
+
+document.getElementById(sec).style.display="block"
+
+}
+
+function mostrarMapa(){
+
+mostrar("mapa")
+
+setTimeout(()=>{
+
+map.invalidateSize()
+
+},200)
+
+}
+
+/* KANBAN */
+
+function add(){
+
+let obj={
+oc:oc.value,
+cliente:cliente.value,
+cidade:cidade.value.toLowerCase(),
+data:data.value,
+nota:nota.value,
+status:"cliente"
+}
+
+dados.push(obj)
+
+render()
+gerarCalendario()
+
+}
+
+function render(){
+
+document.querySelectorAll(".col").forEach(col=>{
+
+let title=col.querySelector("h3").innerText
+col.innerHTML="<h3>"+title+"</h3>"
+
+})
+
+dados.forEach((d,i)=>{
+
+let card=document.createElement("div")
+
+card.className="task "+d.status
+
+card.innerHTML=`
+<div>${d.oc}<br>${d.cliente}</div>
+<div>
+<button onclick="editar(${i})">✏️</button>
+<button onclick="excluir(${i})">❌</button>
+</div>
+`
+
+card.draggable=true
+card.id=i
+card.ondragstart=drag
+
+document.querySelector(`[data-status=${d.status}]`).appendChild(card)
+
+})
+
+total.innerText=dados.length
+c1.innerText=dados.filter(x=>x.status==="cliente").length
+c2.innerText=dados.filter(x=>x.status==="agendado").length
+c3.innerText=dados.filter(x=>x.status==="concluido").length
+
+let hoje=new Date().toISOString().split("T")[0]
+
+atrasados.innerText=dados.filter(x=>x.data < hoje && x.status!="concluido").length
+
+localStorage.setItem("siga_ops",JSON.stringify(dados))
+
+updateMap()
+gerarGraficos()
+
+}
+
+function allow(ev){ev.preventDefault()}
+function drag(ev){ev.dataTransfer.setData("id",ev.target.id)}
+
+function drop(ev){
+
+ev.preventDefault()
+
+let id=ev.dataTransfer.getData("id")
+
+dados[id].status=ev.currentTarget.dataset.status
+
+render()
+gerarCalendario()
+
+}
+
+function excluir(i){
+
+dados.splice(i,1)
+
+render()
+gerarCalendario()
+
+}
+
+function editar(i){
+
+let d=dados[i]
+
+oc.value=d.oc
+cliente.value=d.cliente
+cidade.value=d.cidade
+data.value=d.data
+nota.value=d.nota
+
+dados.splice(i,1)
+
+render()
+
+}
+
+function buscar(){
+
+let termo = busca.value.toLowerCase()
+
+document.querySelectorAll(".task").forEach(card=>{
+
+card.style.display = card.innerText.toLowerCase().includes(termo) ? "block":"none"
+
+})
+
+}
+
+/* MAPA */
+
+function initMap(){
+
+map=L.map('map').setView([-27,-50],6)
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:18
+}).addTo(map)
+
+}
+
+async function getCoords(cidade){
+
+if(cidadesCache[cidade]) return cidadesCache[cidade]
+
+let res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${cidade},brasil`)
+let data=await res.json()
+
+if(data.length){
+
+let coords=[data[0].lat,data[0].lon]
+
+cidadesCache[cidade]=coords
+
+return coords
+
+}
+
+return null
+
+}
+
+async function updateMap(){
+
+if(!map) return
+
+markers.forEach(m=>map.removeLayer(m))
+markers=[]
+
+for(const d of dados){
+
+let coords=await getCoords(d.cidade)
+
+if(coords){
+
+let cor="#ff7a00"
+
+if(d.status=="agendado") cor="#2f7afc"
+if(d.status=="concluido") cor="#888"
+
+let marker=L.circleMarker(coords,{
+radius:10,
+color:cor,
+fillColor:cor,
+fillOpacity:0.9
+}).addTo(map)
+
+marker.bindPopup(`
+<b>${d.cliente}</b><br>
+OC:${d.oc}<br>
+Cidade:${d.cidade}<br>
+Data:${d.data}
+`)
+
+markers.push(marker)
+
+}
+
+}
+
+}
+
+/* GRAFICOS */
+
+function gerarGraficos(){
+
+let chamar = dados.filter(x=>x.status=="cliente").length
+let agendado = dados.filter(x=>x.status=="agendado").length
+let concluido = dados.filter(x=>x.status=="concluido").length
+
+new Chart(graficoStatus,{
+
+type:"doughnut",
+
+data:{
+labels:["Chamar","Agendado","Concluído"],
+datasets:[{
+data:[chamar,agendado,concluido]
+}]
+}
+
+})
+
+let cidades={}
+
+dados.forEach(d=>{
+
+if(!cidades[d.cidade]) cidades[d.cidade]=0
+
+cidades[d.cidade]++
+
+})
+
+new Chart(graficoCidades,{
+
+type:"bar",
+
+data:{
+labels:Object.keys(cidades),
+datasets:[{
+label:"Agendamentos",
+data:Object.values(cidades)
+}]
+}
+
+})
+
+}
+
+/* CALENDARIO */
+
+let mesAtual=new Date().getMonth()
+let anoAtual=new Date().getFullYear()
+
+function gerarCalendario(){
+
+let primeiroDia=new Date(anoAtual,mesAtual,1).getDay()
+let ultimoDia=new Date(anoAtual,mesAtual+1,0).getDate()
+
+let grid=""
+
+for(let i=0;i<primeiroDia;i++) grid+="<div></div>"
+
+for(let d=1;d<=ultimoDia;d++){
+
+let data=`${anoAtual}-${String(mesAtual+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`
+
+let classe="dia"
+
+let tem=dados.find(x=>x.data==data)
+
+if(tem) classe+=" temEvento"
+
+grid+=`<div class="${classe}" onclick="verDia('${data}')">${d}</div>`
+
+}
+
+calendarGrid.innerHTML=grid
+
+const meses=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"]
+
+mesAno.innerText=meses[mesAtual]+" "+anoAtual
+
+}
+
+function mesAnterior(){
+
+mesAtual--
+
+if(mesAtual<0){mesAtual=11;anoAtual--}
+
+gerarCalendario()
+
+}
+
+function mesProximo(){
+
+mesAtual++
+
+if(mesAtual>11){mesAtual=0;anoAtual++}
+
+gerarCalendario()
+
+}
+
+function verDia(data){
+
+let html="<h3>Agendamentos</h3>"
+
+dados.forEach(d=>{
+
+if(d.data==data){
+
+html+=`
+<div class="card">
+<b>${d.cliente}</b><br>
+OC:${d.oc}<br>
+Cidade:${d.cidade}
+</div>
+`
+
+}
+
+})
+
+agendaDia.innerHTML=html
+
+}
+
+</script>
+
+</body>
+</html>]
