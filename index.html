@@ -35,7 +35,7 @@ position:relative;
 overflow:hidden;
 
 /* IMAGEM DE FUNDO */
-background:url("https://sigasul.com/wp-content/uploads/2025/02/caminhao-amanda_com-cameras-copiar-1-3.png") center/cover no-repeat fixed;
+background:url("sigasul.jpg") center/cover no-repeat fixed;
 }
 
 /* OVERLAY SUAVE */
@@ -95,9 +95,9 @@ border-radius:22px;
 background:linear-gradient(
 120deg,
 transparent,
-rgba(255,122,0,0.6),
+rgba(0, 0, 0, 0.6),
 transparent,
-rgba(15,76,129,0.6),
+rgba(0, 0, 0, 0.6),
 transparent
 );
 
@@ -156,7 +156,7 @@ width:100%;
 border:none;
 border-radius:12px;
 
-background:linear-gradient(135deg,#ff7a00,#ff9c3d);
+background:linear-gradient(135deg,#0d20ae,#ff9c3d);
 
 color:white;
 font-weight:600;
@@ -379,18 +379,184 @@ color:white;
 background:#ff7a00;
 color:white;
 }
+.ai-assistente{
 
+position:fixed;
+bottom:25px;
+right:25px;
+z-index:9999;
+
+}
+
+/* BOTÃO */
+
+.ai-bot{
+
+width:62px;
+height:62px;
+
+border-radius:50%;
+
+background:linear-gradient(135deg,#0f4c81,#2f7afc);
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+color:white;
+font-weight:600;
+
+cursor:pointer;
+
+box-shadow:0 15px 40px rgba(0,0,0,0.25);
+
+position:relative;
+
+transition:0.3s;
+
+}
+
+.ai-bot:hover{
+
+transform:scale(1.08);
+
+}
+
+/* ANIMAÇÃO ALERTA */
+
+.ai-pulse{
+
+position:absolute;
+
+width:100%;
+height:100%;
+
+border-radius:50%;
+
+background:rgba(47,122,252,0.4);
+
+animation:pulseAI 2s infinite;
+
+}
+
+@keyframes pulseAI{
+
+0%{transform:scale(1);opacity:0.6;}
+70%{transform:scale(1.6);opacity:0;}
+100%{opacity:0;}
+
+}
+
+/* PAINEL */
+
+.ai-panel{
+
+width:320px;
+height:360px;
+
+background:white;
+
+border-radius:14px;
+
+box-shadow:0 25px 60px rgba(0,0,0,0.25);
+
+position:absolute;
+
+bottom:80px;
+right:0;
+
+display:none;
+
+flex-direction:column;
+
+overflow:hidden;
+
+}
+
+/* HEADER */
+
+.ai-header{
+
+background:#0f4c81;
+color:white;
+
+padding:14px;
+
+font-weight:500;
+
+}
+
+/* MENSAGENS */
+
+.ai-messages{
+
+flex:1;
+
+overflow:auto;
+
+padding:12px;
+
+}
+
+/* CARD MENSAGEM */
+
+.ai-msg{
+
+padding:10px 12px;
+border-radius:10px;
+
+margin-bottom:10px;
+
+font-size:14px;
+
+animation:fadeMsg 0.4s;
+
+}
+
+/* TIPOS */
+
+.ai-info{
+
+background:#e8f1ff;
+border-left:4px solid #2f7afc;
+
+}
+
+.ai-alert{
+
+background:#ffe7d1;
+border-left:4px solid #ff7a00;
+
+}
+
+.ai-success{
+
+background:#e7f7ed;
+border-left:4px solid #2ecc71;
+
+}
+
+@keyframes fadeMsg{
+
+from{
+opacity:0;
+transform:translateY(10px);
+}
+
+to{
+opacity:1;
+transform:translateY(0);
+}
+
+}
 </style>
 
 </head>
 
 <body>
-
+<link rel="icon" type="image/png" href="logo.png">
 <div class="login" id="login">
 <div class="login-box">
-
-<h2>SigaOps</h2>
-<h2>Control</h2>
 
 <input id="user" placeholder="Usuário">
 <input id="pass" type="password" placeholder="Senha">
@@ -401,7 +567,24 @@ color:white;
 </div>
 
 <div class="app" id="app">
+<div class="ai-assistente">
 
+<div class="ai-bot" onclick="toggleAI()">
+<div class="ai-pulse"></div>
+AI
+</div>
+
+<div class="ai-panel" id="aiPanel">
+
+<div class="ai-header">
+Assistente Operacional
+</div>
+
+<div class="ai-messages" id="aiMessages"></div>
+
+</div>
+
+</div>
 <div class="container">
 
 <div class="sidebar">
@@ -413,6 +596,7 @@ color:white;
 <button onclick="mostrar('kanban')">Kanban</button>
 <button onclick="mostrarMapa()">Mapa</button>
 <button onclick="mostrar('calendario')">Calendário</button>
+
 
 </div>
 
@@ -429,6 +613,7 @@ color:white;
 <div class="card">Agendado<h2 id="c2"></h2></div>
 <div class="card">Concluído<h2 id="c3"></h2></div>
 <div class="card">Atrasados<h2 id="atrasados"></h2></div>
+
 
 
 
@@ -546,6 +731,7 @@ let cidadesCache={}
 
 /* LOGIN */
 
+
 function loginSistema(){
 
 if(user.value==="admin" && pass.value==="123"){
@@ -587,7 +773,62 @@ map.invalidateSize()
 },200)
 
 }
+function toggleAI(){
 
+let p=document.getElementById("aiPanel")
+
+p.style.display = p.style.display=="flex" ? "none" : "flex"
+
+}function aiMensagem(texto,tipo="info"){
+
+let box=document.getElementById("aiMessages")
+
+let div=document.createElement("div")
+
+div.className="ai-msg ai-"+tipo
+
+div.innerText=texto
+
+box.prepend(div)
+
+}function analisarSistema(){
+
+let hoje=new Date().toISOString().split("T")[0]
+
+let atrasados=dados.filter(x=>x.data < hoje && x.status!="concluido")
+
+if(atrasados.length){
+
+aiMensagem(
+atrasados.length + " agendamentos estão atrasados.",
+"alert"
+)
+
+}
+
+let chamar=dados.filter(x=>x.status=="cliente")
+
+if(chamar.length){
+
+aiMensagem(
+chamar.length + " clientes aguardando contato.",
+"info"
+)
+
+}
+
+let concluidos=dados.filter(x=>x.status=="concluido")
+
+if(concluidos.length){
+
+aiMensagem(
+concluidos.length + " serviços já foram concluídos.",
+"success"
+)
+
+}
+
+}
 /* KANBAN */
 
 function add(){
@@ -609,7 +850,7 @@ gerarCalendario()
 }
 
 function render(){
-
+analisarSistema()
 document.querySelectorAll(".col").forEach(col=>{
 
 let title=col.querySelector("h3").innerText
